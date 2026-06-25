@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+@theme {
+  --color-navy-dark: #0F1F3D;
+  --color-navy-mid: #1A3A6B;
+  --color-navy-light: #2D5AA0;
+  --color-grey-bg: #F4F6F9;
+  --color-grey-card: #FFFFFF;
+  --color-grey-border: #E2E8F0;
+  --color-text-primary: #1A202C;
+  --color-text-muted: #64748B;
+  --color-green: #22C55E;
+  --color-orange: #F59E0B;
+  --color-red: #EF4444;
+  --color-blue-accent: #3B82F6;
+}
+
+body {
+  font-family: 'Heebo', sans-serif;
+  background-color: var(--color-grey-bg);
+  color: var(--color-text-primary);
+  direction: rtl;
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+select {
+  font-family: 'Heebo', sans-serif;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
