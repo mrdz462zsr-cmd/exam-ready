@@ -3,11 +3,11 @@ import { extractTextFromPDF, extractTextsFromPDFs } from '../utils/pdfExtractor'
 import { parseSyllabus } from '../utils/claudeAPI';
 import { convertToMarkdown } from '../utils/markdownConverter';
 import { buildSchedule } from '../utils/scheduleEngine';
-import { demoCourseData, demoParsedResult } from '../utils/demoData';
+import { demoCourseData, demoCoursesData, demoParsedResult } from '../utils/demoData';
 
 const isDemo = import.meta.env.VITE_DEMO_MODE === 'true';
 
-export default function Onboarding({ onComplete }) {
+export default function Onboarding({ onComplete, onDemoEnter }) {
   const [courseName, setCourseName] = useState('');
   const [examDate, setExamDate] = useState('');
   const [hoursPerWeek, setHoursPerWeek] = useState(10);
@@ -92,9 +92,25 @@ export default function Onboarding({ onComplete }) {
       </header>
 
       <div className="flex-1 flex items-center justify-center p-6">
+        <div className="w-full max-w-lg space-y-4">
+          {isDemo && (
+            <div className="bg-orange/10 border border-orange/25 rounded-xl p-4 text-center space-y-3">
+              <p className="text-[14px] text-orange font-semibold">
+                זוהי גרסת הדגמה. הנתונים מוצגים לצורך הדגמה בלבד.
+              </p>
+              <button
+                type="button"
+                onClick={onDemoEnter}
+                className="bg-navy-light hover:bg-navy-mid text-white font-bold py-2.5 px-6 rounded-lg transition-all duration-200 text-[14px] shadow-[0_2px_8px_rgba(45,90,160,0.3)]"
+              >
+                כניסה לדשבורד הדגמה &larr;
+              </button>
+            </div>
+          )}
+
         <form
           onSubmit={handleSubmit}
-          className="bg-white rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] border border-grey-border/50 p-8 w-full max-w-lg"
+          className={`bg-white rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] border border-grey-border/50 p-8 w-full ${isDemo ? 'opacity-60 pointer-events-none select-none' : ''}`}
         >
           <h2 className="text-xl font-bold text-text-primary mb-1">יצירת תוכנית לימוד</h2>
           <p className="text-text-muted text-sm mb-7">מלא את הפרטים ונבנה עבורך תוכנית מותאמת אישית</p>
@@ -179,10 +195,12 @@ export default function Onboarding({ onComplete }) {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || isDemo}
             className="w-full bg-navy-light hover:bg-navy-mid text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_2px_8px_rgba(45,90,160,0.3)] hover:shadow-[0_4px_12px_rgba(45,90,160,0.4)]"
           >
-            {loading ? (
+            {isDemo ? (
+              'מצב הדגמה — הטופס נעול 🔒'
+            ) : loading ? (
               <span className="flex items-center justify-center gap-2">
                 <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 {loadingMsg}
@@ -192,6 +210,7 @@ export default function Onboarding({ onComplete }) {
             )}
           </button>
         </form>
+        </div>
       </div>
     </div>
   );

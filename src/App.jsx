@@ -101,12 +101,12 @@ export default function App() {
 
   // Onboarding for adding a new course
   if (showOnboarding) {
-    return <Onboarding onComplete={handleOnboardingComplete} />;
+    return <Onboarding onComplete={handleOnboardingComplete} onDemoEnter={() => setShowOnboarding(false)} />;
   }
 
   // No courses and not demo → show onboarding
   if (courses.length === 0) {
-    return <Onboarding onComplete={handleOnboardingComplete} />;
+    return <Onboarding onComplete={handleOnboardingComplete} onDemoEnter={() => setShowOnboarding(false)} />;
   }
 
   // Single course drill-down view
