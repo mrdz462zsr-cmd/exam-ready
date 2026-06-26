@@ -22,12 +22,12 @@ export default function Header({ courseName, examDate, overallStatus, topics, on
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           {/* Right: Logo + course */}
           <div className="flex items-center gap-4">
-            <div className="w-9 h-9 rounded-lg bg-navy-light flex items-center justify-center">
+            <button onClick={onReset} className="w-9 h-9 rounded-lg bg-navy-light flex items-center justify-center hover:bg-navy-mid transition-colors cursor-pointer">
               <span className="text-white font-bold text-sm">ER</span>
-            </div>
+            </button>
             <div>
               <div className="flex items-center gap-2.5">
-                <h1 className="text-lg font-bold text-white tracking-tight">ExamReady</h1>
+                <button onClick={onReset} className="text-lg font-bold text-white tracking-tight hover:text-white/80 transition-colors cursor-pointer bg-transparent border-none p-0">ExamReady</button>
                 <div className="w-px h-5 bg-white/20" />
                 <span className="text-white/90 text-[15px] font-medium">{courseName}</span>
               </div>
