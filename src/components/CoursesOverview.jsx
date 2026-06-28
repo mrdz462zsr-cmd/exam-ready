@@ -40,6 +40,17 @@ function getPlannedHoursThisWeek(courses) {
   }, 0);
 }
 
+function getTotalStudyDays(courses) {
+  const maxExam = courses.reduce((max, c) => {
+    const d = new Date(c.examDate);
+    return d > max ? d : max;
+  }, new Date());
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  maxExam.setHours(0, 0, 0, 0);
+  return Math.max(0, Math.floor((maxExam - today) / 86400000));
+}
+
 function getExamsThisMonth(courses) {
   const now = new Date();
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -50,37 +61,29 @@ function getExamsThisMonth(courses) {
   }).length;
 }
 
-function KPISummaryCard({ title, children }) {
+function KPISummaryCard({ icon, title, children }) {
   return (
     <div className="bg-white rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] border border-grey-border/60 p-4 flex flex-col gap-1 min-w-[140px]">
-      <p className="text-[11px] uppercase tracking-wider text-text-muted font-semibold">{title}</p>
+      <p className="text-[11px] uppercase tracking-wider text-text-muted font-semibold">{icon} {title}</p>
       {children}
     </div>
   );
 }
 
-// Course color palette
-const COURSE_COLORS = ['#2D5AA0', '#22C55E', '#F59E0B', '#EF4444', '#3B82F6', '#8B5CF6'];
-
 function OverallProgressChart({ courses }) {
   const { data, actualLineColor } = useMemo(() => {
     if (courses.length === 0) return { data: [], actualLineColor: '#22C55E' };
-
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-
     const maxExam = courses.reduce((max, c) => {
       const d = new Date(c.examDate);
       return d > max ? d : max;
     }, today);
-
     const totalDays = Math.max(1, Math.floor((maxExam - today) / 86400000));
     const totalWeeks = Math.max(1, Math.ceil(totalDays / 7));
-
     const totalHours = courses.reduce((s, c) => s + c.topics.reduce((s2, t) => s2 + t.estimatedHours, 0), 0);
     const completedHours = courses.reduce((s, c) => s + c.topics.filter(t => t.status === 'completed').reduce((s2, t) => s2 + t.estimatedHours, 0), 0);
     const actualPct = totalHours > 0 ? (completedHours / totalHours) * 100 : 0;
-
     const points = [];
     for (let w = 0; w <= totalWeeks; w++) {
       const weekDate = new Date(today);
@@ -89,7 +92,6 @@ function OverallProgressChart({ courses }) {
       const plannedPct = Math.min(100, Math.round((w / totalWeeks) * 100));
       points.push({ week: label, planned: plannedPct, actual: w <= 1 ? Math.round(actualPct) : null });
     }
-
     const gap = (points[0]?.planned || 0) - actualPct;
     const color = gap > 25 ? '#EF4444' : gap > 15 ? '#F59E0B' : '#22C55E';
     return { data: points, actualLineColor: color };
@@ -140,121 +142,62 @@ function OverallProgressChart({ courses }) {
 }
 
 function CoursesGantt({ courses, onSelectCourse }) {
-  const { totalWeeks, weekLabels, courseRows } = useMemo(() => {
-    if (courses.length === 0) return { totalWeeks: 0, weekLabels: [], courseRows: [] };
-
+  const { weekLabels, courseRows } = useMemo(() => {
+    if (courses.length === 0) return { weekLabels: [], courseRows: [] };
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-
     const maxExam = courses.reduce((max, c) => {
       const d = new Date(c.examDate);
       return d > max ? d : max;
     }, today);
-
     const totalDays = Math.max(7, Math.ceil((maxExam - today) / 86400000) + 7);
     const tw = Math.ceil(totalDays / 7);
-
     const labels = [];
     for (let i = 0; i < tw; i++) {
       const weekStart = new Date(today);
       weekStart.setDate(weekStart.getDate() + i * 7);
       labels.push(weekStart.toLocaleDateString('he-IL', { day: 'numeric', month: 'short', timeZone: 'Asia/Jerusalem' }));
     }
-
-    const rows = courses.map((c, idx) => {
+    const rows = courses.map((c) => {
       const exam = new Date(c.examDate);
       exam.setHours(0, 0, 0, 0);
       const daysToExam = Math.max(0, Math.floor((exam - today) / 86400000));
       const completedPct = getCompletionPct(c.topics);
       const barWidthPct = Math.min(100, (daysToExam / (tw * 7)) * 100);
-      const color = COURSE_COLORS[idx % COURSE_COLORS.length];
-
-      let status = 'upcoming';
-      if (completedPct === 100) status = 'completed';
-      else if (completedPct > 0) status = 'in_progress';
-      if (daysToExam <= 7 && completedPct < 50) status = 'at_risk';
-
       return {
-        id: c.id,
-        name: c.courseName,
-        daysLeft: daysToExam,
-        completedPct,
-        barWidthPct,
-        color,
-        status,
-        examDate: c.examDate,
+        id: c.id, name: c.courseName, daysLeft: daysToExam, completedPct, barWidthPct,
+        color: c.color || '#2D5AA0', emoji: c.emoji || '',
       };
     });
-
-    return { totalWeeks: tw, weekLabels: labels, courseRows: rows };
+    return { weekLabels: labels, courseRows: rows };
   }, [courses]);
-
-  const STATUS_BAR_CLASSES = {
-    completed: 'opacity-100',
-    in_progress: 'opacity-100',
-    upcoming: 'opacity-60',
-    at_risk: 'opacity-100',
-  };
 
   return (
     <div className="bg-white rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] border border-grey-border/60 p-5">
       <div className="flex items-center justify-between mb-5">
         <h3 className="text-[15px] font-bold text-text-primary">גנט קורסים — מפת לימוד</h3>
-        <span className="text-[11px] text-text-muted bg-grey-bg px-2.5 py-1 rounded-md font-medium">
-          {courses.length} קורסים
-        </span>
+        <span className="text-[11px] text-text-muted bg-grey-bg px-2.5 py-1 rounded-md font-medium">{courses.length} קורסים</span>
       </div>
-
       <div className="overflow-x-auto">
         <div className="min-w-[500px]">
-          {/* Week headers */}
           <div className="flex items-center mb-3 mr-44">
             {weekLabels.map((label, i) => (
-              <div key={i} className="flex-1 text-center text-[11px] font-medium text-text-muted">
-                {label}
-              </div>
+              <div key={i} className="flex-1 text-center text-[11px] font-medium text-text-muted">{label}</div>
             ))}
           </div>
-
-          {/* Course rows */}
           {courseRows.map((row, idx) => (
             <div key={row.id}>
-              <div
-                className="flex items-center cursor-pointer rounded-lg py-2.5 px-1 hover:bg-grey-bg/50 transition-colors"
-                onClick={() => onSelectCourse(row.id)}
-              >
+              <div className="flex items-center cursor-pointer rounded-lg py-2.5 px-1 hover:bg-grey-bg/50 transition-colors" onClick={() => onSelectCourse(row.id)}>
                 <span className="w-44 text-[13px] text-text-primary truncate shrink-0 pl-3 font-medium">
-                  {row.name}
+                  {row.emoji} {row.name}
                 </span>
                 <div className="flex-1 relative h-9">
-                  {/* Full bar (time until exam) */}
-                  <div
-                    className={`absolute top-0.5 h-8 rounded-md transition-all duration-300 shadow-sm ${STATUS_BAR_CLASSES[row.status]}`}
-                    style={{
-                      right: '0%',
-                      width: `${Math.max(row.barWidthPct, 4)}%`,
-                      backgroundColor: row.color,
-                      opacity: 0.2,
-                    }}
-                  />
-                  {/* Completed portion */}
-                  <div
-                    className="absolute top-0.5 h-8 rounded-md transition-all duration-500 shadow-sm"
-                    style={{
-                      right: '0%',
-                      width: `${Math.max((row.barWidthPct * row.completedPct) / 100, row.completedPct > 0 ? 2 : 0)}%`,
-                      backgroundColor: row.color,
-                    }}
-                  />
-                  {/* Label */}
+                  <div className="absolute top-0.5 h-8 rounded-md transition-all duration-300" style={{ right: '0%', width: `${Math.max(row.barWidthPct, 4)}%`, backgroundColor: row.color, opacity: 0.15 }} />
+                  <div className="absolute top-0.5 h-8 rounded-md transition-all duration-500 shadow-sm" style={{ right: '0%', width: `${Math.max((row.barWidthPct * row.completedPct) / 100, row.completedPct > 0 ? 2 : 0)}%`, backgroundColor: row.color }} />
                   <span className="absolute top-0.5 h-8 flex items-center px-2 text-[10px] font-medium" style={{ right: '4px', color: row.completedPct > 30 ? '#fff' : row.color }}>
                     {row.completedPct}% · {row.daysLeft} ימים
                   </span>
-                  {/* Exam marker */}
-                  <div
-                    className="absolute top-0 h-9 w-0.5"
-                    style={{ right: `${row.barWidthPct}%`, backgroundColor: row.color }}
-                  >
+                  <div className="absolute top-0 h-9 w-0.5" style={{ right: `${row.barWidthPct}%`, backgroundColor: row.color }}>
                     <div className="absolute -top-0.5 -right-1 w-2.5 h-2.5 rounded-full border-2 border-white shadow-sm" style={{ backgroundColor: row.color }} />
                   </div>
                 </div>
@@ -264,21 +207,10 @@ function CoursesGantt({ courses, onSelectCourse }) {
           ))}
         </div>
       </div>
-
-      {/* Legend */}
       <div className="flex flex-wrap gap-5 mt-5 pt-4 border-t border-grey-border/50">
-        <div className="flex items-center gap-1.5">
-          <span className="w-6 h-2.5 rounded-sm bg-navy-light" />
-          <span className="text-[11px] text-text-muted font-medium">הושלם</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-6 h-2.5 rounded-sm bg-navy-light/20" />
-          <span className="text-[11px] text-text-muted font-medium">זמן שנותר</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-navy-light" />
-          <span className="text-[11px] text-text-muted font-medium">מועד מבחן</span>
-        </div>
+        <div className="flex items-center gap-1.5"><span className="w-6 h-2.5 rounded-sm bg-navy-light" /><span className="text-[11px] text-text-muted font-medium">הושלם</span></div>
+        <div className="flex items-center gap-1.5"><span className="w-6 h-2.5 rounded-sm bg-navy-light/20" /><span className="text-[11px] text-text-muted font-medium">זמן שנותר</span></div>
+        <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-navy-light" /><span className="text-[11px] text-text-muted font-medium">מועד מבחן</span></div>
       </div>
     </div>
   );
@@ -287,63 +219,39 @@ function CoursesGantt({ courses, onSelectCourse }) {
 export default function CoursesOverview({ courses, onSelectCourse, onAddCourse, onReset }) {
   const closestExam = useMemo(() => {
     if (courses.length === 0) return null;
-    return courses.reduce((min, c) => {
-      const d = getDaysLeft(c.examDate);
-      return d < getDaysLeft(min.examDate) ? c : min;
-    });
+    return courses.reduce((min, c) => getDaysLeft(c.examDate) < getDaysLeft(min.examDate) ? c : min);
   }, [courses]);
 
   const closestDays = closestExam ? getDaysLeft(closestExam.examDate) : 0;
+  const closestDaysColor = closestDays <= 14 ? 'text-red' : closestDays <= 21 ? 'text-orange' : 'text-green';
   const examsThisMonth = useMemo(() => getExamsThisMonth(courses), [courses]);
-  const plannedHours = useMemo(() => getPlannedHoursThisWeek(courses), [courses]);
+  const totalStudyDays = useMemo(() => getTotalStudyDays(courses), [courses]);
 
-  // Timeline: compute week range across all courses
   const timeline = useMemo(() => {
     if (courses.length === 0) return { weeks: [], courseMarkers: [] };
-
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-
-    const maxExam = courses.reduce((max, c) => {
-      const d = new Date(c.examDate);
-      return d > max ? d : max;
-    }, today);
-
+    const maxExam = courses.reduce((max, c) => { const d = new Date(c.examDate); return d > max ? d : max; }, today);
     const totalDays = Math.max(7, Math.ceil((maxExam - today) / 86400000) + 7);
     const totalWeeks = Math.ceil(totalDays / 7);
-
     const weeks = [];
     for (let i = 0; i < totalWeeks; i++) {
       const weekStart = new Date(today);
       weekStart.setDate(weekStart.getDate() + i * 7);
-      weeks.push({
-        label: weekStart.toLocaleDateString('he-IL', { day: 'numeric', month: 'short', timeZone: 'Asia/Jerusalem' }),
-        start: weekStart,
-      });
+      weeks.push({ label: weekStart.toLocaleDateString('he-IL', { day: 'numeric', month: 'short', timeZone: 'Asia/Jerusalem' }) });
     }
-
-    const courseMarkers = courses.map((c, idx) => {
+    const courseMarkers = courses.map((c) => {
       const exam = new Date(c.examDate);
       exam.setHours(0, 0, 0, 0);
       const dayOffset = Math.max(0, Math.floor((exam - today) / 86400000));
       const pct = Math.min(100, (dayOffset / (totalWeeks * 7)) * 100);
-      return {
-        courseName: c.courseName,
-        examDate: c.examDate,
-        pct,
-        color: COURSE_COLORS[idx % COURSE_COLORS.length],
-        daysLeft: getDaysLeft(c.examDate),
-      };
+      return { courseName: c.courseName, pct, color: c.color || '#2D5AA0', emoji: c.emoji || '', daysLeft: getDaysLeft(c.examDate) };
     });
-
     return { weeks, courseMarkers };
   }, [courses]);
 
-  const closestDaysColor = closestDays <= 14 ? 'text-red' : closestDays <= 21 ? 'text-orange' : 'text-green';
-
   return (
     <div className="min-h-screen bg-grey-bg">
-      {/* Header */}
       <header className="bg-navy-dark">
         <div className="px-6 lg:px-8 py-5">
           <div className="flex items-center justify-between">
@@ -357,18 +265,8 @@ export default function CoursesOverview({ courses, onSelectCourse, onAddCourse, 
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <button
-                onClick={onAddCourse}
-                className="bg-navy-light hover:bg-navy-mid text-white px-4 py-1.5 rounded-lg text-xs font-medium transition-colors"
-              >
-                + קורס חדש
-              </button>
-              <button
-                onClick={onReset}
-                className="border border-white/15 text-white/50 hover:text-white hover:border-white/40 hover:bg-white/5 px-4 py-1.5 rounded-lg text-xs font-medium transition-all duration-200"
-              >
-                איפוס הכל
-              </button>
+              <button onClick={onAddCourse} className="bg-navy-light hover:bg-navy-mid text-white px-4 py-1.5 rounded-lg text-xs font-medium transition-colors">+ קורס חדש</button>
+              <button onClick={onReset} className="border border-white/15 text-white/50 hover:text-white hover:border-white/40 hover:bg-white/5 px-4 py-1.5 rounded-lg text-xs font-medium transition-all duration-200">איפוס הכל</button>
             </div>
           </div>
         </div>
@@ -377,22 +275,23 @@ export default function CoursesOverview({ courses, onSelectCourse, onAddCourse, 
       <div className="p-4 md:p-6 lg:p-8 space-y-6">
         {/* KPI Summary Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <KPISummaryCard title="סה״כ קורסים">
+          <KPISummaryCard icon="📚" title="סה״כ קורסים">
             <p className="text-[28px] font-bold text-text-primary leading-none">{courses.length}</p>
           </KPISummaryCard>
-          <KPISummaryCard title="מבחן הבא">
+          <KPISummaryCard icon="🎯" title="מבחן הבא">
             <div className="flex items-baseline gap-1.5">
               <p className={`text-[28px] font-bold leading-none ${closestDaysColor}`}>{closestDays}</p>
               <span className="text-text-muted text-xs">ימים</span>
             </div>
+            {closestExam && <p className="text-[11px] text-text-muted truncate">{closestExam.emoji} {closestExam.courseName}</p>}
           </KPISummaryCard>
-          <KPISummaryCard title="מבחנים החודש">
+          <KPISummaryCard icon="📅" title="מבחנים החודש">
             <p className="text-[28px] font-bold text-text-primary leading-none">{examsThisMonth}</p>
           </KPISummaryCard>
-          <KPISummaryCard title="שעות לימוד השבוע">
+          <KPISummaryCard icon="⏰" title="ימי לימוד נותרו">
             <div className="flex items-baseline gap-1.5">
-              <p className="text-[28px] font-bold text-navy-light leading-none">{plannedHours}</p>
-              <span className="text-text-muted text-xs">שעות</span>
+              <p className="text-[28px] font-bold text-navy-light leading-none">{totalStudyDays}</p>
+              <span className="text-text-muted text-xs">עד 30.7</span>
             </div>
           </KPISummaryCard>
         </div>
@@ -402,38 +301,24 @@ export default function CoursesOverview({ courses, onSelectCourse, onAddCourse, 
           <div className="bg-white rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] border border-grey-border/60 p-5">
             <h3 className="text-[15px] font-bold text-text-primary mb-4">ציר זמן — מבחנים קרובים</h3>
             <div className="relative">
-              {/* Week labels */}
               <div className="flex mb-2">
                 {timeline.weeks.map((w, i) => (
-                  <div key={i} className="flex-1 text-center text-[11px] text-text-muted font-medium">
-                    {w.label}
-                  </div>
+                  <div key={i} className="flex-1 text-center text-[11px] text-text-muted font-medium">{w.label}</div>
                 ))}
               </div>
-              {/* Track */}
               <div className="relative h-8 bg-grey-bg rounded-full">
-                {/* Today marker */}
                 <div className="absolute top-0 right-0 w-0.5 h-full bg-navy-dark/20" />
-                {/* Exam markers */}
                 {timeline.courseMarkers.map((m, i) => (
-                  <div
-                    key={i}
-                    className="absolute top-0 h-full flex items-center"
-                    style={{ right: `${m.pct}%`, transform: 'translateX(50%)' }}
-                    title={`${m.courseName} — ${m.daysLeft} ימים`}
-                  >
-                    <div
-                      className="w-4 h-4 rounded-full border-2 border-white shadow-md cursor-pointer"
-                      style={{ backgroundColor: m.color }}
-                    />
+                  <div key={i} className="absolute top-0 h-full flex items-center" style={{ right: `${m.pct}%`, transform: 'translateX(50%)' }} title={`${m.emoji} ${m.courseName} — ${m.daysLeft} ימים`}>
+                    <div className="w-4 h-4 rounded-full border-2 border-white shadow-md cursor-pointer" style={{ backgroundColor: m.color }} />
                   </div>
                 ))}
               </div>
-              {/* Legend */}
               <div className="flex flex-wrap gap-4 mt-3">
                 {timeline.courseMarkers.map((m, i) => (
                   <div key={i} className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: m.color }} />
+                    <span className="text-[12px]">{m.emoji}</span>
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: m.color }} />
                     <span className="text-[11px] text-text-muted font-medium">{m.courseName}</span>
                   </div>
                 ))}
@@ -449,41 +334,68 @@ export default function CoursesOverview({ courses, onSelectCourse, onAddCourse, 
         </div>
 
         {/* Course Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {courses.map((course, idx) => {
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {courses.map((course) => {
             const daysLeft = getDaysLeft(course.examDate);
             const daysColor = daysLeft <= 14 ? 'text-red' : daysLeft <= 21 ? 'text-orange' : 'text-green';
             const daysBg = daysLeft <= 14 ? 'bg-red/8' : daysLeft <= 21 ? 'bg-orange/8' : 'bg-green/8';
             const completionPct = getCompletionPct(course.topics);
             const nextTopic = getNextTopic(course.topics);
             const priority = PRIORITY_STYLES[course.priority || 'medium'];
-            const barColor = daysLeft <= 14 ? 'bg-red' : daysLeft <= 21 ? 'bg-orange' : 'bg-navy-light';
+            const courseColor = course.color || '#2D5AA0';
+            const courseEmoji = course.emoji || '';
 
             return (
               <div
                 key={course.id}
                 onClick={() => onSelectCourse(course.id)}
-                className="bg-white rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] border border-grey-border/60 cursor-pointer hover:shadow-md hover:border-navy-light/30 transition-all duration-200 flex flex-col"
+                className="bg-white rounded-xl shadow-[0_1px_4px_rgba(0,0,0,0.08)] border border-grey-border/40 cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all duration-200 flex flex-col overflow-hidden"
               >
-                <div className="p-5 flex-1">
-                  {/* Top row: name + priority badge */}
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <h3 className="text-[15px] font-bold text-text-primary leading-snug">{course.courseName}</h3>
-                    <span className={`shrink-0 px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${priority.className}`}>
+                {/* Colored header banner */}
+                <div className="px-5 py-4" style={{ backgroundColor: courseColor }}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{courseEmoji}</span>
+                      <h3 className="text-[15px] font-bold text-white leading-snug">{course.courseName}</h3>
+                    </div>
+                    <span className={`shrink-0 px-2 py-0.5 rounded-full text-[9px] font-bold bg-white/20 text-white border border-white/30`}>
                       {priority.label}
                     </span>
                   </div>
+                  <div className="flex items-center gap-3 mt-2">
+                    <p className="text-[12px] text-white/80">
+                      {new Date(course.examDate).toLocaleDateString('he-IL', { day: 'numeric', month: 'long', timeZone: 'Asia/Jerusalem' })}
+                      {course.examTime && ` · ${course.examTime}`}
+                    </p>
+                  </div>
+                </div>
 
-                  {/* Exam date */}
-                  <p className="text-[12px] text-text-muted mb-4">
-                    מבחן: {new Date(course.examDate).toLocaleDateString('he-IL', { day: 'numeric', month: 'long', timeZone: 'Asia/Jerusalem' })}
-                  </p>
-
+                <div className="p-5 flex-1 flex flex-col">
                   {/* Days remaining badge */}
-                  <div className={`inline-flex items-baseline gap-1.5 px-3 py-1.5 rounded-lg ${daysBg} mb-4`}>
-                    <span className={`text-[24px] font-bold leading-none ${daysColor}`}>{daysLeft}</span>
+                  <div className={`inline-flex items-baseline gap-1.5 px-3 py-1.5 rounded-lg ${daysBg} mb-3 self-start`}>
+                    <span className={`text-[26px] font-bold leading-none ${daysColor}`}>{daysLeft}</span>
                     <span className={`text-[11px] font-medium ${daysColor}`}>ימים למבחן</span>
                   </div>
+
+                  {/* Exam detail pills */}
+                  {course.examDetails && (
+                    <div className="flex flex-wrap gap-1.5 mb-3">
+                      {course.examDetails.map((d, i) => (
+                        <span key={i} className="inline-flex items-center gap-1 bg-grey-bg text-text-muted text-[10px] px-2 py-0.5 rounded-md font-medium border border-grey-border/40">
+                          <span>{d.icon}</span> {d.text}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Strategy tip */}
+                  {course.strategy && (
+                    <div className="bg-orange/5 border border-orange/15 rounded-lg px-3 py-2 mb-3">
+                      <p className="text-[11px] text-text-primary leading-relaxed">
+                        <span className="font-bold">💡 אסטרטגיה:</span> {course.strategy}
+                      </p>
+                    </div>
+                  )}
 
                   {/* Next topic */}
                   {nextTopic && (
@@ -493,19 +405,15 @@ export default function CoursesOverview({ courses, onSelectCourse, onAddCourse, 
                     </p>
                   )}
 
-                  {/* Topics progress label */}
-                  <p className="text-[11px] text-text-muted mt-3">
+                  <p className="text-[11px] text-text-muted mt-auto pt-2">
                     {course.topics.filter(t => t.status === 'completed').length}/{course.topics.length} נושאים הושלמו
                   </p>
                 </div>
 
-                {/* Progress bar at bottom */}
+                {/* Progress bar */}
                 <div className="px-5 pb-4">
-                  <div className="w-full bg-grey-border/50 rounded-full h-2">
-                    <div
-                      className={`${barColor} h-2 rounded-full transition-all duration-500 ease-out`}
-                      style={{ width: `${completionPct}%` }}
-                    />
+                  <div className="w-full bg-grey-border/40 rounded-full h-2">
+                    <div className="h-2 rounded-full transition-all duration-500 ease-out" style={{ width: `${completionPct}%`, backgroundColor: courseColor }} />
                   </div>
                   <p className="text-[11px] text-text-muted mt-1 text-left">{completionPct}%</p>
                 </div>
