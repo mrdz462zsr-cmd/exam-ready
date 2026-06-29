@@ -321,67 +321,61 @@ export default function CoursesOverview({ courses, onSelectCourse, onAddCourse, 
           </KPISummaryCard>
         </div>
 
-        {/* Weekly Timeline — SVG */}
-        {timelineData && (
-          <div className="bg-white rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] border border-grey-border/60 w-full" style={{ padding: 24 }}>
-            <h3 className="text-[15px] font-bold text-text-primary mb-2">ציר זמן — מבחנים קרובים</h3>
-            <div style={{ width: '100%' }}>
-            <svg width="100%" height="120" viewBox="0 0 1200 120" preserveAspectRatio="none" style={{ display: 'block', width: '100%' }}>
-              {(() => {
-                const W = 1200, pad = 80, lineY = 50;
-                const { totalDays, exams, axisDates, firstDate, fmtDate } = timelineData;
-                const calcX = (daysFromStart) => W - pad - (daysFromStart / totalDays) * (W - 2 * pad);
+        {/* Weekly Timeline — DOM-based */}
+        {timelineData && (() => {
+          const { totalDays, exams, axisDates, firstDate, fmtDate } = timelineData;
+          const calcLeft = (daysFromStart) => Math.min(98, Math.max(2, 100 - (daysFromStart / totalDays) * 100));
 
-                const sortedExams = [...exams].sort((a, b) => a.daysFromStart - b.daysFromStart);
-                const labelYs = sortedExams.map((e, i) => {
-                  const x = calcX(e.daysFromStart);
-                  const prev = i > 0 ? calcX(sortedExams[i - 1].daysFromStart) : x + 100;
-                  return Math.abs(x - prev) < 60 ? (i % 2 === 0 ? 85 : 100) : 85;
-                });
+          const sortedExams = [...exams].sort((a, b) => a.daysFromStart - b.daysFromStart);
+          const staggered = sortedExams.map((e, i) => {
+            const left = calcLeft(e.daysFromStart);
+            const prevLeft = i > 0 ? calcLeft(sortedExams[i - 1].daysFromStart) : left + 20;
+            const needsStagger = Math.abs(left - prevLeft) < 8;
+            return { ...e, left, labelRow: needsStagger ? (i % 2 === 0 ? 0 : 1) : 0 };
+          });
 
-                return (
-                  <>
-                    {/* Horizontal line */}
-                    <line x1={pad} y1={lineY} x2={W - pad} y2={lineY} stroke="#E2E8F0" strokeWidth="2" />
+          return (
+            <div className="bg-white rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] border border-grey-border/60 w-full p-6">
+              <h3 className="text-[15px] font-bold text-text-primary mb-4">ציר זמן — מבחנים קרובים</h3>
+              <div className="relative w-full" style={{ height: 120 }}>
+                {/* Horizontal line */}
+                <div className="absolute w-full" style={{ top: 40, height: 2, backgroundColor: '#E2E8F0' }} />
 
-                    {/* Axis ticks */}
-                    {axisDates.map((d, i) => {
-                      const days = Math.floor((d - firstDate) / 86400000);
-                      const x = calcX(days);
-                      return (
-                        <g key={`tick-${i}`}>
-                          <line x1={x} y1={lineY} x2={x} y2={lineY + 6} stroke="#94A3B8" strokeWidth="1" />
-                          <text x={x} y={lineY + 18} textAnchor="middle" fill="#94A3B8" fontSize="10" fontFamily="Heebo">{fmtDate(d)}</text>
-                        </g>
-                      );
-                    })}
+                {/* Axis ticks */}
+                {axisDates.map((d, i) => {
+                  const days = Math.floor((d - firstDate) / 86400000);
+                  const left = calcLeft(days);
+                  return (
+                    <div key={`tick-${i}`} className="absolute flex flex-col items-center" style={{ left: `${left}%`, transform: 'translateX(-50%)', top: 40 }}>
+                      <div style={{ width: 1, height: 6, backgroundColor: '#94A3B8' }} />
+                      <span className="text-[10px] text-text-muted font-medium mt-0.5 whitespace-nowrap">{fmtDate(d)}</span>
+                    </div>
+                  );
+                })}
 
-                    {/* Exam dots + labels */}
-                    {sortedExams.map((e, i) => {
-                      const x = calcX(e.daysFromStart);
-                      const dotColor = e.passed ? '#94A3B8' : e.color;
-                      const opacity = e.passed ? 0.3 : 1;
-                      const nameLabel = `${e.emoji} ${e.courseName.split(' ').slice(0, 2).join(' ')}`;
-                      return (
-                        <g key={`exam-${i}`} opacity={opacity}>
-                          {/* Date label above */}
-                          <text x={x} y={lineY - 18} textAnchor="middle" fill={dotColor} fontSize="11" fontWeight="bold" fontFamily="Heebo">{e.dateLabel}</text>
-                          {/* Dot */}
-                          <circle cx={x} cy={lineY} r="8" fill={dotColor} stroke="white" strokeWidth="2" />
-                          {/* Dashed line below */}
-                          <line x1={x} y1={lineY + 8} x2={x} y2={labelYs[i] - 8} stroke="#CBD5E1" strokeWidth="1" strokeDasharray="3 2" />
-                          {/* Course name below */}
-                          <text x={x} y={labelYs[i]} textAnchor="middle" fill="#64748B" fontSize="10" fontFamily="Heebo">{nameLabel}</text>
-                        </g>
-                      );
-                    })}
-                  </>
-                );
-              })()}
-            </svg>
+                {/* Exam dots */}
+                {staggered.map((e, i) => {
+                  const dotColor = e.passed ? '#94A3B8' : e.color;
+                  const opacity = e.passed ? 0.3 : 1;
+                  const nameLabel = `${e.emoji} ${e.courseName.split(' ').slice(0, 2).join(' ')}`;
+                  const labelTop = e.labelRow === 0 ? 68 : 84;
+                  return (
+                    <div key={`exam-${i}`} className="absolute flex flex-col items-center" style={{ left: `${e.left}%`, transform: 'translateX(-50%)', top: 0, opacity }}>
+                      {/* Date label above */}
+                      <span className="text-[11px] font-bold whitespace-nowrap" style={{ color: dotColor, position: 'absolute', top: 14, left: '50%', transform: 'translateX(-50%)' }}>{e.dateLabel}</span>
+                      {/* Dot */}
+                      <div style={{ width: 16, height: 16, borderRadius: '50%', backgroundColor: dotColor, border: '2px solid white', boxShadow: '0 1px 3px rgba(0,0,0,0.15)', position: 'absolute', top: 32, left: '50%', transform: 'translateX(-50%)' }} />
+                      {/* Dashed line */}
+                      <div style={{ width: 1, borderRight: '1px dashed #CBD5E1', position: 'absolute', top: 50, height: labelTop - 54, left: '50%', transform: 'translateX(-50%)' }} />
+                      {/* Course name */}
+                      <span className="text-[10px] text-text-muted font-medium whitespace-nowrap" style={{ position: 'absolute', top: labelTop, left: '50%', transform: 'translateX(-50%)' }}>{nameLabel}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Gantt + Progress Chart */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-5">
