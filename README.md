@@ -1,7 +1,7 @@
 # ExamReady 📚
-> An adaptive exam prep dashboard for Israeli university students
+> An adaptive exam prep dashboard for university students
 
-<!-- add dashboard screenshot here -->
+<img width="1690" height="893" alt="Pasted Graphic 1" src="https://github.com/user-attachments/assets/48905123-0baf-4411-b73e-b67de188c868" />
 
 ## What it does
 Upload your PDF syllabus and exam date — ExamReady parses the material once using the Claude API, converts it to structured markdown saved locally, and generates a personalized week-by-week study schedule that updates in real time as you complete topics.
@@ -56,4 +56,4 @@ Then upload your PDF syllabus, set your exam date, and get your personalized stu
 5. All subsequent operations read from localStorage only — API never called again
 
 ## Built by
-Yonatan Gamlieli — Industrial Engineering & Management student specializing in Business Analytics and Information Systems.
+Yonatan Gamlieli — Industrial Engineering & Management student
