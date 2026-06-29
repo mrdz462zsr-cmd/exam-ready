@@ -119,10 +119,10 @@ function OverallProgressChart({ courses }) {
           <LineChart data={data} margin={{ top: 10, right: 10, left: 20, bottom: 30 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" strokeOpacity={0.7} vertical={false} />
             <XAxis dataKey="week" tick={{ fontSize: 11, fill: '#64748B', fontFamily: 'Heebo' }} axisLine={{ stroke: '#E2E8F0' }} tickLine={false}>
-              <Label value="תאריך" position="bottom" offset={10} style={{ fontSize: 12, fill: '#64748B', fontFamily: 'Heebo' }} />
+              <Label value="תאריך" position="bottom" offset={10} style={{ fontSize: 12, fill: '#64748B', fontFamily: 'Heebo', fontWeight: 700 }} />
             </XAxis>
             <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: '#64748B', fontFamily: 'Heebo' }} tickFormatter={v => `${v}%`} axisLine={false} tickLine={false} orientation="right" width={45}>
-              <Label value="אחוז כיסוי חומר (%)" angle={-90} position="left" offset={0} style={{ fontSize: 11, fill: '#64748B', fontFamily: 'Heebo', textAnchor: 'middle' }} />
+              <Label value="אחוז כיסוי חומר (%)" angle={-90} position="insideLeft" dx={-5} style={{ fontSize: 11, fill: '#64748B', fontFamily: 'Heebo', textAnchor: 'middle', fontWeight: 700 }} />
             </YAxis>
             <Tooltip content={({ active, payload, label }) => {
               if (!active || !payload) return null;
@@ -239,7 +239,7 @@ export default function CoursesOverview({ courses, onSelectCourse, onAddCourse, 
   const examsRemainingColor = examsRemaining >= 6 ? 'text-red' : examsRemaining >= 3 ? 'text-orange' : 'text-green';
 
   const timeline = useMemo(() => {
-    if (courses.length === 0) return { weeks: [], courseMarkers: [] };
+    if (courses.length === 0) return { axisLabels: [], courseMarkers: [] };
 
     let startDate, endDate;
     if (isDemo) {
@@ -248,30 +248,42 @@ export default function CoursesOverview({ courses, onSelectCourse, onAddCourse, 
     } else {
       startDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jerusalem' }));
       startDate.setHours(0, 0, 0, 0);
-      endDate = courses.reduce((max, c) => { const d = new Date(c.examDate); return d > max ? d : max; }, startDate);
+      endDate = courses.reduce((max, c) => { const d = new Date(c.examDate); return d > max ? d : max; }, new Date(startDate));
       endDate.setHours(0, 0, 0, 0);
     }
 
     const totalDays = Math.max(1, Math.floor((endDate - startDate) / 86400000));
-    const totalWeeks = Math.max(1, Math.ceil(totalDays / 7));
-    const weeks = [];
-    for (let i = 0; i <= totalWeeks; i++) {
-      const weekStart = new Date(startDate);
-      weekStart.setDate(weekStart.getDate() + i * 7);
-      if (weekStart <= endDate || i === 0) {
-        weeks.push({ label: weekStart.toLocaleDateString('he-IL', { day: 'numeric', month: 'short', timeZone: 'Asia/Jerusalem' }) });
-      }
-    }
+
+    const axisDatesList = isDemo
+      ? [new Date('2026-06-29'), new Date('2026-07-06'), new Date('2026-07-13'), new Date('2026-07-20'), new Date('2026-07-27'), new Date('2026-07-30')]
+      : (() => {
+          const labels = [];
+          for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 7)) {
+            labels.push(new Date(d));
+          }
+          if (labels.length === 0 || labels[labels.length - 1].getTime() !== endDate.getTime()) {
+            labels.push(new Date(endDate));
+          }
+          return labels;
+        })();
+
+    const axisLabels = axisDatesList.map(d => {
+      const daysFromEnd = Math.floor((endDate - d) / 86400000);
+      const rightPct = Math.max(0, Math.min(100, (daysFromEnd / totalDays) * 100));
+      return { label: `${d.getDate()}.${d.getMonth() + 1}`, rightPct };
+    });
+
+    const fmtDate = (d) => `${d.getDate()}.${d.getMonth() + 1}`;
 
     const courseMarkers = courses.map((c) => {
       const exam = new Date(c.examDate);
       exam.setHours(0, 0, 0, 0);
-      const dayOffset = Math.floor((exam - startDate) / 86400000);
-      const pct = Math.max(0, Math.min(100, (dayOffset / totalDays) * 100));
-      const passed = exam < startDate;
-      return { courseName: c.courseName, pct, color: c.color || '#2D5AA0', emoji: c.emoji || '', daysLeft: getDaysLeft(c.examDate), passed };
+      const daysFromEnd = Math.floor((endDate - exam) / 86400000);
+      const rightPct = Math.max(0, Math.min(100, (daysFromEnd / totalDays) * 100));
+      const passed = !isDemo && exam < startDate;
+      return { courseName: c.courseName, rightPct, color: c.color || '#2D5AA0', emoji: c.emoji || '', daysLeft: getDaysLeft(c.examDate), passed, dateLabel: fmtDate(exam) };
     });
-    return { weeks, courseMarkers };
+    return { axisLabels, courseMarkers };
   }, [courses]);
 
   return (
@@ -322,29 +334,41 @@ export default function CoursesOverview({ courses, onSelectCourse, onAddCourse, 
         </div>
 
         {/* Weekly Timeline */}
-        {timeline.weeks.length > 0 && (
+        {timeline.courseMarkers.length > 0 && (
           <div className="bg-white rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] border border-grey-border/60 p-5">
             <h3 className="text-[15px] font-bold text-text-primary mb-4">ציר זמן — מבחנים קרובים</h3>
             <div className="relative">
-              <div className="flex mb-2">
-                {timeline.weeks.map((w, i) => (
-                  <div key={i} className="flex-1 text-center text-[11px] text-text-muted font-medium">{w.label}</div>
+              {/* Date labels above dots */}
+              <div className="relative h-5 mb-1">
+                {timeline.courseMarkers.map((m, i) => (
+                  <div key={i} className="absolute top-0 flex justify-center" style={{ right: `${m.rightPct}%`, transform: 'translateX(50%)' }}>
+                    <span className="text-[10px] font-bold whitespace-nowrap" style={{ color: m.passed ? '#94A3B8' : m.color }}>{m.dateLabel}</span>
+                  </div>
                 ))}
               </div>
+              {/* Track */}
               <div className="relative h-8 bg-grey-bg rounded-full">
-                <div className="absolute top-0 right-0 w-0.5 h-full bg-navy-dark/20" />
                 {timeline.courseMarkers.map((m, i) => (
-                  <div key={i} className="absolute top-0 h-full flex items-center" style={{ right: `${m.pct}%`, transform: 'translateX(50%)' }} title={`${m.emoji} ${m.courseName} — ${m.daysLeft} ימים`}>
+                  <div key={i} className="absolute top-0 h-full flex items-center" style={{ right: `${m.rightPct}%`, transform: 'translateX(50%)' }} title={`${m.emoji} ${m.courseName} — ${m.daysLeft} ימים`}>
                     <div className={`w-4 h-4 rounded-full border-2 border-white shadow-md cursor-pointer ${m.passed ? 'opacity-30' : ''}`} style={{ backgroundColor: m.passed ? '#94A3B8' : m.color }} />
                   </div>
                 ))}
               </div>
-              {/* Dashed lines + labels below each dot */}
+              {/* Dashed lines + course name labels below */}
               <div className="relative h-14 mt-1">
                 {timeline.courseMarkers.map((m, i) => (
-                  <div key={i} className={`absolute top-0 flex flex-col items-center ${m.passed ? 'opacity-40' : ''}`} style={{ right: `${m.pct}%`, transform: 'translateX(50%)' }}>
+                  <div key={i} className={`absolute top-0 flex flex-col items-center ${m.passed ? 'opacity-40' : ''}`} style={{ right: `${m.rightPct}%`, transform: 'translateX(50%)' }}>
                     <div className="w-px h-5 border-r border-dashed border-grey-border" />
                     <span className="text-[10px] text-text-muted font-medium whitespace-nowrap mt-0.5">{m.emoji} {m.courseName.split(' ').slice(0, 2).join(' ')}</span>
+                  </div>
+                ))}
+              </div>
+              {/* X-axis date markers */}
+              <div className="relative h-5 mt-1 border-t border-grey-border/50">
+                {timeline.axisLabels.map((a, i) => (
+                  <div key={i} className="absolute top-0 flex flex-col items-center" style={{ right: `${a.rightPct}%`, transform: 'translateX(50%)' }}>
+                    <div className="w-px h-2 bg-grey-border" />
+                    <span className="text-[9px] text-text-muted font-medium mt-0.5">{a.label}</span>
                   </div>
                 ))}
               </div>
