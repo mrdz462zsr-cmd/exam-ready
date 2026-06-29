@@ -318,7 +318,7 @@ export const demoCoursesData = [
     pastExamsCount: 0,
     priority: 'high',
     color: '#BE185D',
-    emoji: '💜',
+    emoji: '🔴',
     examDetails: [
       { icon: '⏱', text: '120 דקות' },
       { icon: '🚫', text: 'חומר סגור' },
@@ -355,8 +355,8 @@ export const demoCoursesData = [
     topics: algoTopics,
     pastExamsCount: 3,
     priority: 'high',
-    color: '#7C3AED',
-    emoji: '🟣',
+    color: '#EAB308',
+    emoji: '🟡',
     examDetails: [
       { icon: '⏱', text: '180 דקות' },
       { icon: '✏️', text: '2 דפי A4 דו״צ כתיבה עצמית' },
@@ -374,8 +374,8 @@ export const demoCoursesData = [
     topics: qualityTopics,
     pastExamsCount: 2,
     priority: 'medium',
-    color: '#0D9488',
-    emoji: '💙',
+    color: '#EA580C',
+    emoji: '🟠',
     examDetails: [
       { icon: '⏱', text: '180 דקות' },
       { icon: '📝', text: '6 דפים דו״צ כתיבה עצמית' },
@@ -393,8 +393,8 @@ export const demoCoursesData = [
     topics: opsTopics,
     pastExamsCount: 3,
     priority: 'medium',
-    color: '#EA580C',
-    emoji: '🟠',
+    color: '#7C3AED',
+    emoji: '🟣',
     examDetails: [
       { icon: '⏱', text: '180 דקות' },
       { icon: '📚', text: 'כל חומר כתוב ומודפס' },
