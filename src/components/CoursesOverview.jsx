@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, ReferenceLine,
+  ResponsiveContainer, ReferenceLine, Label,
 } from 'recharts';
 
 const PRIORITY_STYLES = {
@@ -98,7 +98,7 @@ function OverallProgressChart({ courses }) {
   }, [courses]);
 
   return (
-    <div className="bg-white rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] border border-grey-border/60 p-5">
+    <div className="bg-white rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] border border-grey-border/60 p-5 flex flex-col" style={{ minHeight: 400 }}>
       <div className="flex items-center justify-between mb-5">
         <h3 className="text-[15px] font-bold text-text-primary">התקדמות כוללת מול תוכנית</h3>
         <div className="flex items-center gap-4">
@@ -112,31 +112,37 @@ function OverallProgressChart({ courses }) {
           </div>
         </div>
       </div>
-      <ResponsiveContainer width="100%" height={250}>
-        <LineChart data={data} margin={{ top: 10, right: 5, left: 5, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" strokeOpacity={0.7} vertical={false} />
-          <XAxis dataKey="week" tick={{ fontSize: 11, fill: '#64748B', fontFamily: 'Heebo' }} axisLine={{ stroke: '#E2E8F0' }} tickLine={false} reversed />
-          <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: '#64748B', fontFamily: 'Heebo' }} tickFormatter={v => `${v}%`} axisLine={false} tickLine={false} orientation="right" width={40} />
-          <Tooltip content={({ active, payload, label }) => {
-            if (!active || !payload) return null;
-            return (
-              <div className="bg-navy-dark/95 backdrop-blur-sm text-white text-[12px] px-3 py-2 rounded-lg shadow-lg border border-white/10" dir="rtl">
-                <p className="font-medium text-white/70 mb-1">{label}</p>
-                {payload.map((entry, i) => (
-                  <p key={i} className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
-                    <span>{entry.name === 'planned' ? 'מתוכנן' : 'בפועל'}:</span>
-                    <span className="font-bold">{Math.round(entry.value)}%</span>
-                  </p>
-                ))}
-              </div>
-            );
-          }} />
-          <ReferenceLine y={100} stroke="#E2E8F0" strokeDasharray="3 3" />
-          <Line type="monotone" dataKey="planned" stroke="#2D5AA0" strokeDasharray="8 4" strokeWidth={2} dot={false} name="planned" />
-          <Line type="monotone" dataKey="actual" stroke={actualLineColor} strokeWidth={2.5} dot={{ fill: actualLineColor, r: 4, strokeWidth: 2, stroke: '#fff' }} connectNulls={false} name="actual" />
-        </LineChart>
-      </ResponsiveContainer>
+      <div className="flex-1" style={{ minHeight: 350 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={data} margin={{ top: 10, right: 10, left: 20, bottom: 30 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" strokeOpacity={0.7} vertical={false} />
+            <XAxis dataKey="week" tick={{ fontSize: 11, fill: '#64748B', fontFamily: 'Heebo' }} axisLine={{ stroke: '#E2E8F0' }} tickLine={false}>
+              <Label value="תאריך" position="bottom" offset={10} style={{ fontSize: 12, fill: '#64748B', fontFamily: 'Heebo' }} />
+            </XAxis>
+            <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: '#64748B', fontFamily: 'Heebo' }} tickFormatter={v => `${v}%`} axisLine={false} tickLine={false} orientation="right" width={45}>
+              <Label value="אחוז כיסוי חומר (%)" angle={-90} position="left" offset={0} style={{ fontSize: 11, fill: '#64748B', fontFamily: 'Heebo', textAnchor: 'middle' }} />
+            </YAxis>
+            <Tooltip content={({ active, payload, label }) => {
+              if (!active || !payload) return null;
+              return (
+                <div className="bg-navy-dark/95 backdrop-blur-sm text-white text-[12px] px-3 py-2 rounded-lg shadow-lg border border-white/10" dir="rtl">
+                  <p className="font-medium text-white/70 mb-1">{label}</p>
+                  {payload.map((entry, i) => (
+                    <p key={i} className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                      <span>{entry.name === 'planned' ? 'מתוכנן' : 'בפועל'}:</span>
+                      <span className="font-bold">{Math.round(entry.value)}%</span>
+                    </p>
+                  ))}
+                </div>
+              );
+            }} />
+            <ReferenceLine y={100} stroke="#E2E8F0" strokeDasharray="3 3" />
+            <Line type="monotone" dataKey="planned" stroke="#2D5AA0" strokeDasharray="8 4" strokeWidth={2} dot={false} name="planned" />
+            <Line type="monotone" dataKey="actual" stroke={actualLineColor} strokeWidth={2.5} dot={{ fill: actualLineColor, r: 4, strokeWidth: 2, stroke: '#fff' }} connectNulls={false} name="actual" />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }
