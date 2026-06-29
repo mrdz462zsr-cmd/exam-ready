@@ -225,7 +225,10 @@ export default function CoursesOverview({ courses, onSelectCourse, onAddCourse, 
   const closestDays = closestExam ? getDaysLeft(closestExam.examDate) : 0;
   const closestDaysColor = closestDays <= 14 ? 'text-red' : closestDays <= 21 ? 'text-orange' : 'text-green';
   const examsThisMonth = useMemo(() => getExamsThisMonth(courses), [courses]);
-  const totalStudyDays = useMemo(() => getTotalStudyDays(courses), [courses]);
+  const examsRemaining = useMemo(() => {
+    return courses.filter(c => getCompletionPct(c.topics) < 100).length;
+  }, [courses]);
+  const examsRemainingColor = examsRemaining >= 6 ? 'text-red' : examsRemaining >= 3 ? 'text-orange' : 'text-green';
 
   const timeline = useMemo(() => {
     if (courses.length === 0) return { weeks: [], courseMarkers: [] };
@@ -288,11 +291,12 @@ export default function CoursesOverview({ courses, onSelectCourse, onAddCourse, 
           <KPISummaryCard icon="📅" title="מבחנים החודש">
             <p className="text-[28px] font-bold text-text-primary leading-none">{examsThisMonth}</p>
           </KPISummaryCard>
-          <KPISummaryCard icon="⏰" title="ימי לימוד נותרו">
-            <div className="flex items-baseline gap-1.5">
-              <p className="text-[28px] font-bold text-navy-light leading-none">{totalStudyDays}</p>
-              <span className="text-text-muted text-xs">עד 30.7</span>
-            </div>
+          <KPISummaryCard icon="📝" title="מבחנים שנותרו">
+            <p className="text-[28px] font-bold leading-none">
+              <span className={examsRemainingColor}>{examsRemaining}</span>
+              <span className="text-text-muted text-lg font-normal mx-0.5">/</span>
+              <span className="text-text-muted text-lg font-normal">{courses.length}</span>
+            </p>
           </KPISummaryCard>
         </div>
 
@@ -314,12 +318,12 @@ export default function CoursesOverview({ courses, onSelectCourse, onAddCourse, 
                   </div>
                 ))}
               </div>
-              <div className="flex flex-wrap gap-4 mt-3">
+              {/* Dashed lines + labels below each dot */}
+              <div className="relative h-14 mt-1">
                 {timeline.courseMarkers.map((m, i) => (
-                  <div key={i} className="flex items-center gap-1.5">
-                    <span className="text-[12px]">{m.emoji}</span>
-                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: m.color }} />
-                    <span className="text-[11px] text-text-muted font-medium">{m.courseName}</span>
+                  <div key={i} className="absolute top-0 flex flex-col items-center" style={{ right: `${m.pct}%`, transform: 'translateX(50%)' }}>
+                    <div className="w-px h-5 border-r border-dashed border-grey-border" />
+                    <span className="text-[10px] text-text-muted font-medium whitespace-nowrap mt-0.5">{m.emoji} {m.courseName.split(' ').slice(0, 2).join(' ')}</span>
                   </div>
                 ))}
               </div>
