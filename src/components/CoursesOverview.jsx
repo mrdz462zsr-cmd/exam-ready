@@ -324,7 +324,7 @@ export default function CoursesOverview({ courses, onSelectCourse, onAddCourse, 
         {/* Weekly Timeline — DOM-based */}
         {timelineData && (() => {
           const { totalDays, exams, axisDates, firstDate, fmtDate } = timelineData;
-          const calcLeft = (daysFromStart) => 98 - ((daysFromStart / 31) * 96);
+          const calcLeft = (daysFromStart) => Math.min(98, Math.max(2, (98 - ((daysFromStart / 31) * 96)) * 1.6 - 30));
 
           const sortedExams = [...exams].sort((a, b) => a.daysFromStart - b.daysFromStart);
           const staggered = sortedExams.map((e, i) => {
