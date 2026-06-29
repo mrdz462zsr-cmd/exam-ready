@@ -28,14 +28,8 @@ Upload your PDF syllabus and exam date — ExamReady parses the material once us
 - localStorage (no backend)
 
 ## Quick Start — Demo Mode (no API key needed)
-```bash
-git clone https://github.com/mrdz462zsr-cmd/exam-ready
-cd exam-ready
-npm install
-echo "VITE_DEMO_MODE=true" > .env
-npm run dev
-```
-Open http://localhost:5173
+
+[Open Live Demo](https://exam-ready-blond.vercel.app) — no setup needed
 
 ## Quick Start — Real Mode (your own syllabus)
 ```bash
@@ -46,7 +40,8 @@ cp .env.example .env
 # Add your VITE_ANTHROPIC_API_KEY to .env
 npm run dev
 ```
-Then upload your PDF syllabus, set your exam date, and get your personalized study plan.
+Then open http://localhost:5173, upload your PDF syllabus, set your exam date and get your personalized study plan.
+Your API key stays on your machine — nothing is uploaded anywhere.
 
 ## How it works
 1. **PDF extraction** — pdf.js reads your syllabus client-side, nothing is uploaded anywhere
