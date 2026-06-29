@@ -121,9 +121,7 @@ function OverallProgressChart({ courses }) {
             <XAxis dataKey="week" tick={{ fontSize: 11, fill: '#64748B', fontFamily: 'Heebo' }} axisLine={{ stroke: '#E2E8F0' }} tickLine={false}>
               <Label value="תאריך" position="bottom" offset={10} style={{ fontSize: 12, fill: '#64748B', fontFamily: 'Heebo', fontWeight: 700 }} />
             </XAxis>
-            <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: '#64748B', fontFamily: 'Heebo' }} tickFormatter={v => `${v}%`} axisLine={false} tickLine={false} orientation="right" width={45}>
-              <Label value="אחוז כיסוי חומר (%)" angle={-90} position="insideLeft" dx={-5} style={{ fontSize: 11, fill: '#64748B', fontFamily: 'Heebo', textAnchor: 'middle', fontWeight: 700 }} />
-            </YAxis>
+            <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: '#64748B', fontFamily: 'Heebo' }} tickFormatter={v => `${v}%`} axisLine={false} tickLine={false} orientation="right" width={45} label={{ value: 'אחוז כיסוי חומר (%)', angle: -90, position: 'insideLeft', offset: 15, style: { fontWeight: 'bold', fill: '#64748B', fontFamily: 'Heebo', fontSize: 11 } }} />
             <Tooltip content={({ active, payload, label }) => {
               if (!active || !payload) return null;
               return (
@@ -238,52 +236,42 @@ export default function CoursesOverview({ courses, onSelectCourse, onAddCourse, 
   }, [courses]);
   const examsRemainingColor = examsRemaining >= 6 ? 'text-red' : examsRemaining >= 3 ? 'text-orange' : 'text-green';
 
-  const timeline = useMemo(() => {
-    if (courses.length === 0) return { axisLabels: [], courseMarkers: [] };
+  const timelineData = useMemo(() => {
+    if (courses.length === 0) return null;
 
-    let startDate, endDate;
+    let firstDate, lastDate;
     if (isDemo) {
-      startDate = new Date('2026-06-29T00:00:00');
-      endDate = new Date('2026-07-30T00:00:00');
+      firstDate = new Date('2026-06-29T00:00:00');
+      lastDate = new Date('2026-07-30T00:00:00');
     } else {
-      startDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jerusalem' }));
-      startDate.setHours(0, 0, 0, 0);
-      endDate = courses.reduce((max, c) => { const d = new Date(c.examDate); return d > max ? d : max; }, new Date(startDate));
-      endDate.setHours(0, 0, 0, 0);
+      firstDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jerusalem' }));
+      firstDate.setHours(0, 0, 0, 0);
+      lastDate = courses.reduce((max, c) => { const d = new Date(c.examDate); return d > max ? d : max; }, new Date(firstDate));
+      lastDate.setHours(0, 0, 0, 0);
     }
 
-    const totalDays = Math.max(1, Math.floor((endDate - startDate) / 86400000));
-
-    const axisDatesList = isDemo
-      ? [new Date('2026-06-29'), new Date('2026-07-06'), new Date('2026-07-13'), new Date('2026-07-20'), new Date('2026-07-27'), new Date('2026-07-30')]
-      : (() => {
-          const labels = [];
-          for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 7)) {
-            labels.push(new Date(d));
-          }
-          if (labels.length === 0 || labels[labels.length - 1].getTime() !== endDate.getTime()) {
-            labels.push(new Date(endDate));
-          }
-          return labels;
-        })();
-
-    const axisLabels = axisDatesList.map(d => {
-      const daysFromEnd = Math.floor((endDate - d) / 86400000);
-      const rightPct = Math.max(0, Math.min(100, (daysFromEnd / totalDays) * 100));
-      return { label: `${d.getDate()}.${d.getMonth() + 1}`, rightPct };
-    });
-
+    const totalDays = Math.max(1, Math.floor((lastDate - firstDate) / 86400000));
+    const padding = 40;
     const fmtDate = (d) => `${d.getDate()}.${d.getMonth() + 1}`;
 
-    const courseMarkers = courses.map((c) => {
+    const axisDates = isDemo
+      ? ['2026-06-29', '2026-07-06', '2026-07-13', '2026-07-20', '2026-07-27', '2026-07-30'].map(s => new Date(s))
+      : (() => {
+          const arr = [];
+          for (let d = new Date(firstDate); d <= lastDate; d.setDate(d.getDate() + 7)) arr.push(new Date(d));
+          if (!arr.length || arr[arr.length - 1].getTime() !== lastDate.getTime()) arr.push(new Date(lastDate));
+          return arr;
+        })();
+
+    const exams = courses.map((c) => {
       const exam = new Date(c.examDate);
       exam.setHours(0, 0, 0, 0);
-      const daysFromEnd = Math.floor((endDate - exam) / 86400000);
-      const rightPct = Math.max(0, Math.min(100, (daysFromEnd / totalDays) * 100));
-      const passed = !isDemo && exam < startDate;
-      return { courseName: c.courseName, rightPct, color: c.color || '#2D5AA0', emoji: c.emoji || '', daysLeft: getDaysLeft(c.examDate), passed, dateLabel: fmtDate(exam) };
+      const daysFromStart = Math.floor((exam - firstDate) / 86400000);
+      const passed = !isDemo && exam < firstDate;
+      return { courseName: c.courseName, color: c.color || '#2D5AA0', emoji: c.emoji || '', daysFromStart, dateLabel: fmtDate(exam), passed, daysLeft: getDaysLeft(c.examDate) };
     });
-    return { axisLabels, courseMarkers };
+
+    return { totalDays, padding, axisDates, exams, firstDate, fmtDate };
   }, [courses]);
 
   return (
@@ -333,46 +321,63 @@ export default function CoursesOverview({ courses, onSelectCourse, onAddCourse, 
           </KPISummaryCard>
         </div>
 
-        {/* Weekly Timeline */}
-        {timeline.courseMarkers.length > 0 && (
+        {/* Weekly Timeline — SVG */}
+        {timelineData && (
           <div className="bg-white rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] border border-grey-border/60 p-5">
-            <h3 className="text-[15px] font-bold text-text-primary mb-4">ציר זמן — מבחנים קרובים</h3>
-            <div className="relative">
-              {/* Date labels above dots */}
-              <div className="relative h-5 mb-1">
-                {timeline.courseMarkers.map((m, i) => (
-                  <div key={i} className="absolute top-0 flex justify-center" style={{ right: `${m.rightPct}%`, transform: 'translateX(50%)' }}>
-                    <span className="text-[10px] font-bold whitespace-nowrap" style={{ color: m.passed ? '#94A3B8' : m.color }}>{m.dateLabel}</span>
-                  </div>
-                ))}
-              </div>
-              {/* Track */}
-              <div className="relative h-8 bg-grey-bg rounded-full">
-                {timeline.courseMarkers.map((m, i) => (
-                  <div key={i} className="absolute top-0 h-full flex items-center" style={{ right: `${m.rightPct}%`, transform: 'translateX(50%)' }} title={`${m.emoji} ${m.courseName} — ${m.daysLeft} ימים`}>
-                    <div className={`w-4 h-4 rounded-full border-2 border-white shadow-md cursor-pointer ${m.passed ? 'opacity-30' : ''}`} style={{ backgroundColor: m.passed ? '#94A3B8' : m.color }} />
-                  </div>
-                ))}
-              </div>
-              {/* Dashed lines + course name labels below */}
-              <div className="relative h-14 mt-1">
-                {timeline.courseMarkers.map((m, i) => (
-                  <div key={i} className={`absolute top-0 flex flex-col items-center ${m.passed ? 'opacity-40' : ''}`} style={{ right: `${m.rightPct}%`, transform: 'translateX(50%)' }}>
-                    <div className="w-px h-5 border-r border-dashed border-grey-border" />
-                    <span className="text-[10px] text-text-muted font-medium whitespace-nowrap mt-0.5">{m.emoji} {m.courseName.split(' ').slice(0, 2).join(' ')}</span>
-                  </div>
-                ))}
-              </div>
-              {/* X-axis date markers */}
-              <div className="relative h-5 mt-1 border-t border-grey-border/50">
-                {timeline.axisLabels.map((a, i) => (
-                  <div key={i} className="absolute top-0 flex flex-col items-center" style={{ right: `${a.rightPct}%`, transform: 'translateX(50%)' }}>
-                    <div className="w-px h-2 bg-grey-border" />
-                    <span className="text-[9px] text-text-muted font-medium mt-0.5">{a.label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <h3 className="text-[15px] font-bold text-text-primary mb-2">ציר זמן — מבחנים קרובים</h3>
+            <svg width="100%" height="120" viewBox="0 0 1000 120" preserveAspectRatio="xMidYMid meet" style={{ overflow: 'visible', display: 'block' }}>
+              {(() => {
+                const W = 1000, pad = 40, lineY = 50;
+                const { totalDays, exams, axisDates, firstDate, fmtDate } = timelineData;
+                const calcX = (daysFromStart) => W - pad - (daysFromStart / totalDays) * (W - 2 * pad);
+
+                const sortedExams = [...exams].sort((a, b) => a.daysFromStart - b.daysFromStart);
+                const labelYs = sortedExams.map((e, i) => {
+                  const x = calcX(e.daysFromStart);
+                  const prev = i > 0 ? calcX(sortedExams[i - 1].daysFromStart) : x + 100;
+                  return Math.abs(x - prev) < 60 ? (i % 2 === 0 ? 85 : 100) : 85;
+                });
+
+                return (
+                  <>
+                    {/* Horizontal line */}
+                    <line x1={pad} y1={lineY} x2={W - pad} y2={lineY} stroke="#E2E8F0" strokeWidth="2" />
+
+                    {/* Axis ticks */}
+                    {axisDates.map((d, i) => {
+                      const days = Math.floor((d - firstDate) / 86400000);
+                      const x = calcX(days);
+                      return (
+                        <g key={`tick-${i}`}>
+                          <line x1={x} y1={lineY} x2={x} y2={lineY + 6} stroke="#94A3B8" strokeWidth="1" />
+                          <text x={x} y={lineY + 18} textAnchor="middle" fill="#94A3B8" fontSize="10" fontFamily="Heebo">{fmtDate(d)}</text>
+                        </g>
+                      );
+                    })}
+
+                    {/* Exam dots + labels */}
+                    {sortedExams.map((e, i) => {
+                      const x = calcX(e.daysFromStart);
+                      const dotColor = e.passed ? '#94A3B8' : e.color;
+                      const opacity = e.passed ? 0.3 : 1;
+                      const nameLabel = `${e.emoji} ${e.courseName.split(' ').slice(0, 2).join(' ')}`;
+                      return (
+                        <g key={`exam-${i}`} opacity={opacity}>
+                          {/* Date label above */}
+                          <text x={x} y={lineY - 18} textAnchor="middle" fill={dotColor} fontSize="11" fontWeight="bold" fontFamily="Heebo">{e.dateLabel}</text>
+                          {/* Dot */}
+                          <circle cx={x} cy={lineY} r="8" fill={dotColor} stroke="white" strokeWidth="2" />
+                          {/* Dashed line below */}
+                          <line x1={x} y1={lineY + 8} x2={x} y2={labelYs[i] - 8} stroke="#CBD5E1" strokeWidth="1" strokeDasharray="3 2" />
+                          {/* Course name below */}
+                          <text x={x} y={labelYs[i]} textAnchor="middle" fill="#64748B" fontSize="10" fontFamily="Heebo">{nameLabel}</text>
+                        </g>
+                      );
+                    })}
+                  </>
+                );
+              })()}
+            </svg>
           </div>
         )}
 
