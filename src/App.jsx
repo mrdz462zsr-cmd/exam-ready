@@ -37,6 +37,30 @@ export default function App() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [schedule, setSchedule] = useState(null);
 
+  const navigateToCourse = useCallback((id) => {
+    setActiveCourseId(id);
+    window.history.pushState({ view: 'course', courseId: id }, '');
+  }, []);
+
+  const navigateToOverview = useCallback(() => {
+    setActiveCourseId(null);
+  }, []);
+
+  useEffect(() => {
+    const onPopState = (e) => {
+      if (e.state?.view === 'course') {
+        setActiveCourseId(e.state.courseId);
+        setShowOnboarding(false);
+      } else {
+        setActiveCourseId(null);
+        setShowOnboarding(false);
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    window.history.replaceState({ view: 'overview' }, '');
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
   const activeCourse = courses.find(c => c.id === activeCourseId) || null;
 
   const rebuildSchedule = useCallback((data) => {
@@ -64,7 +88,7 @@ export default function App() {
     const newCourse = { ...data, id: 'course-' + Date.now(), priority: 'medium' };
     setCourses(prev => [...prev, newCourse]);
     setShowOnboarding(false);
-    setActiveCourseId(newCourse.id);
+    navigateToCourse(newCourse.id);
   };
 
   const handleTopicStatusChange = (topicId, newStatus) => {
@@ -86,7 +110,8 @@ export default function App() {
   };
 
   const handleResetCourse = () => {
-    setActiveCourseId(null);
+    navigateToOverview();
+    window.history.pushState({ view: 'overview' }, '');
   };
 
   const handleResetAll = () => {
@@ -150,7 +175,7 @@ export default function App() {
       )}
       <CoursesOverview
         courses={courses}
-        onSelectCourse={(id) => setActiveCourseId(id)}
+        onSelectCourse={(id) => navigateToCourse(id)}
         onAddCourse={() => setShowOnboarding(true)}
         onReset={handleResetAll}
       />
