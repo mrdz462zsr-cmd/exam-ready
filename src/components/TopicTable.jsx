@@ -150,6 +150,9 @@ export default function TopicTable({ topics, pastExamsCount, onTopicStatusChange
                     <span className={`px-2.5 py-1 rounded-full text-[11px] font-semibold ${priority.className}`}>
                       {priority.label}
                     </span>
+                    <p className="text-[10px] mt-1" style={{ color: '#94A3B8' }}>
+                      {pastExamsCount > 0 && topics.some(t => t.examFrequency > 0) ? 'סילבוס + תדירות במבחנים' : 'מבוסס על סילבוס בלבד'}
+                    </p>
                   </td>
                   <td className="py-3.5 px-3">
                     <select
