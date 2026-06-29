@@ -4,6 +4,8 @@ import {
   ResponsiveContainer, ReferenceLine, Label,
 } from 'recharts';
 
+const isDemo = import.meta.env.VITE_DEMO_MODE === 'true';
+
 const PRIORITY_STYLES = {
   high: { label: 'עדיפות גבוהה', className: 'bg-red/10 text-red border border-red/15' },
   medium: { label: 'עדיפות בינונית', className: 'bg-orange/10 text-orange border border-orange/15' },
@@ -238,23 +240,36 @@ export default function CoursesOverview({ courses, onSelectCourse, onAddCourse, 
 
   const timeline = useMemo(() => {
     if (courses.length === 0) return { weeks: [], courseMarkers: [] };
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const maxExam = courses.reduce((max, c) => { const d = new Date(c.examDate); return d > max ? d : max; }, today);
-    const totalDays = Math.max(7, Math.ceil((maxExam - today) / 86400000) + 7);
-    const totalWeeks = Math.ceil(totalDays / 7);
-    const weeks = [];
-    for (let i = 0; i < totalWeeks; i++) {
-      const weekStart = new Date(today);
-      weekStart.setDate(weekStart.getDate() + i * 7);
-      weeks.push({ label: weekStart.toLocaleDateString('he-IL', { day: 'numeric', month: 'short', timeZone: 'Asia/Jerusalem' }) });
+
+    let startDate, endDate;
+    if (isDemo) {
+      startDate = new Date('2026-06-29T00:00:00');
+      endDate = new Date('2026-07-30T00:00:00');
+    } else {
+      startDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jerusalem' }));
+      startDate.setHours(0, 0, 0, 0);
+      endDate = courses.reduce((max, c) => { const d = new Date(c.examDate); return d > max ? d : max; }, startDate);
+      endDate.setHours(0, 0, 0, 0);
     }
+
+    const totalDays = Math.max(1, Math.floor((endDate - startDate) / 86400000));
+    const totalWeeks = Math.max(1, Math.ceil(totalDays / 7));
+    const weeks = [];
+    for (let i = 0; i <= totalWeeks; i++) {
+      const weekStart = new Date(startDate);
+      weekStart.setDate(weekStart.getDate() + i * 7);
+      if (weekStart <= endDate || i === 0) {
+        weeks.push({ label: weekStart.toLocaleDateString('he-IL', { day: 'numeric', month: 'short', timeZone: 'Asia/Jerusalem' }) });
+      }
+    }
+
     const courseMarkers = courses.map((c) => {
       const exam = new Date(c.examDate);
       exam.setHours(0, 0, 0, 0);
-      const dayOffset = Math.max(0, Math.floor((exam - today) / 86400000));
-      const pct = Math.min(100, (dayOffset / (totalWeeks * 7)) * 100);
-      return { courseName: c.courseName, pct, color: c.color || '#2D5AA0', emoji: c.emoji || '', daysLeft: getDaysLeft(c.examDate) };
+      const dayOffset = Math.floor((exam - startDate) / 86400000);
+      const pct = Math.max(0, Math.min(100, (dayOffset / totalDays) * 100));
+      const passed = exam < startDate;
+      return { courseName: c.courseName, pct, color: c.color || '#2D5AA0', emoji: c.emoji || '', daysLeft: getDaysLeft(c.examDate), passed };
     });
     return { weeks, courseMarkers };
   }, [courses]);
@@ -320,14 +335,14 @@ export default function CoursesOverview({ courses, onSelectCourse, onAddCourse, 
                 <div className="absolute top-0 right-0 w-0.5 h-full bg-navy-dark/20" />
                 {timeline.courseMarkers.map((m, i) => (
                   <div key={i} className="absolute top-0 h-full flex items-center" style={{ right: `${m.pct}%`, transform: 'translateX(50%)' }} title={`${m.emoji} ${m.courseName} — ${m.daysLeft} ימים`}>
-                    <div className="w-4 h-4 rounded-full border-2 border-white shadow-md cursor-pointer" style={{ backgroundColor: m.color }} />
+                    <div className={`w-4 h-4 rounded-full border-2 border-white shadow-md cursor-pointer ${m.passed ? 'opacity-30' : ''}`} style={{ backgroundColor: m.passed ? '#94A3B8' : m.color }} />
                   </div>
                 ))}
               </div>
               {/* Dashed lines + labels below each dot */}
               <div className="relative h-14 mt-1">
                 {timeline.courseMarkers.map((m, i) => (
-                  <div key={i} className="absolute top-0 flex flex-col items-center" style={{ right: `${m.pct}%`, transform: 'translateX(50%)' }}>
+                  <div key={i} className={`absolute top-0 flex flex-col items-center ${m.passed ? 'opacity-40' : ''}`} style={{ right: `${m.pct}%`, transform: 'translateX(50%)' }}>
                     <div className="w-px h-5 border-r border-dashed border-grey-border" />
                     <span className="text-[10px] text-text-muted font-medium whitespace-nowrap mt-0.5">{m.emoji} {m.courseName.split(' ').slice(0, 2).join(' ')}</span>
                   </div>
