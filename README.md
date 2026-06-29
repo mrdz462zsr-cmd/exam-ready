@@ -1,49 +1,59 @@
-# ExamReady
-
-An adaptive exam prep dashboard for Israeli university students.
+# ExamReady 📚
+> An adaptive exam prep dashboard for Israeli university students
 
 <!-- add dashboard screenshot here -->
 
-## What This Demonstrates
+## What it does
+Upload your PDF syllabus and exam date — ExamReady parses the material once using the Claude API, converts it to structured markdown saved locally, and generates a personalized week-by-week study schedule that updates in real time as you complete topics.
 
+## Live Demo
+👉 [exam-ready-blond.vercel.app](https://exam-ready-blond.vercel.app)
+> Demo mode is on by default — no API key needed.
+
+## What this demonstrates
 - Dynamic scheduling engine with real-time recalculation
-- BI-style dashboard with KPIs, Gantt timeline, and progress analytics
+- BI-style dashboard: KPIs, Gantt timeline, progress analytics
 - PDF parsing pipeline → structured markdown → schedule generation
 - Claude API integration for intelligent syllabus analysis
+- Priority scoring: syllabus weight (60%) + past exam frequency (40%)
 - Hebrew RTL UI with full Tailwind customization
 - Demo mode for zero-setup portfolio viewing
 
-## Quick Start — Demo Mode
+## Tech Stack
+- React 18 + Vite
+- Tailwind CSS (RTL)
+- Recharts
+- Claude API — claude-sonnet-4-6
+- pdf.js (client-side PDF extraction)
+- localStorage (no backend)
 
-No API key needed:
-
+## Quick Start — Demo Mode (no API key needed)
 ```bash
+git clone https://github.com/mrdz462zsr-cmd/exam-ready
+cd exam-ready
 npm install
 echo "VITE_DEMO_MODE=true" > .env
 npm run dev
 ```
+Open http://localhost:5173
 
-## Quick Start — Real Mode
-
+## Quick Start — Real Mode (your own syllabus)
 ```bash
+git clone https://github.com/mrdz462zsr-cmd/exam-ready
+cd exam-ready
+npm install
 cp .env.example .env
-# Add your VITE_ANTHROPIC_API_KEY
+# Add your VITE_ANTHROPIC_API_KEY to .env
 npm run dev
 ```
+Then upload your PDF syllabus, set your exam date, and get your personalized study plan.
 
-## Tech Stack
+## How it works
+1. **PDF extraction** — pdf.js reads your syllabus client-side, nothing is uploaded anywhere
+2. **Claude API** — extracted text is sent once to Claude, returns structured JSON
+3. **Markdown conversion** — JSON is saved as Hebrew .md to localStorage
+4. **Schedule engine** — topics distributed across weeks by priority and time remaining
+5. All subsequent operations read from localStorage only — API never called again
 
-- React 18 + Vite
-- Tailwind CSS (RTL-aware)
-- Recharts
-- Claude API (claude-sonnet-4-6)
-- pdf.js (client-side PDF extraction)
-- localStorage (all persistence, no backend)
-- Font: Heebo (Google Fonts)
-
----
-
-## בעברית
-
-ExamReady היא מערכת לניהול תוכנית לימודים לפני תקופת מבחנים,
-המבוססת על ניתוח הסילבוס ומבחנים קודמים.
+## Built by
+Yonatan Gamlieli — Industrial Engineering & Management student specializing in Business Analytics and Information Systems.
