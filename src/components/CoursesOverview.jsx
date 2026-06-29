@@ -325,9 +325,9 @@ export default function CoursesOverview({ courses, onSelectCourse, onAddCourse, 
         {timelineData && (
           <div className="bg-white rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] border border-grey-border/60 p-5">
             <h3 className="text-[15px] font-bold text-text-primary mb-2">ציר זמן — מבחנים קרובים</h3>
-            <svg width="100%" height="120" viewBox="0 0 1000 120" preserveAspectRatio="xMinYMid meet" style={{ display: 'block' }}>
+            <svg width="100%" height="120" viewBox="0 0 1000 120" preserveAspectRatio="xMidYMid meet" style={{ overflow: 'visible', display: 'block' }}>
               {(() => {
-                const W = 1000, pad = 60, lineY = 50;
+                const W = 1000, pad = 40, lineY = 50;
                 const { totalDays, exams, axisDates, firstDate, fmtDate } = timelineData;
                 const calcX = (daysFromStart) => W - pad - (daysFromStart / totalDays) * (W - 2 * pad);
 
