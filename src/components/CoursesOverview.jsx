@@ -340,7 +340,7 @@ export default function CoursesOverview({ courses, onSelectCourse, onAddCourse, 
             <div className="bg-white rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] border border-grey-border/60 w-full p-6">
               <h3 className="text-[15px] font-bold text-text-primary mb-2">ציר זמן — מבחנים קרובים</h3>
               <div style={{ width: '100%', overflowX: 'hidden' }}>
-                <svg width="100%" height="140" viewBox="0 0 1000 140" preserveAspectRatio="none">
+                <svg width="100%" height="140" viewBox="0 0 1000 140" preserveAspectRatio="xMidYMid meet">
                   <line x1="20" y1="60" x2="980" y2="60" stroke="#E2E8F0" strokeWidth="2" />
                   {ticks.map((t, i) => (
                     <g key={`t${i}`}>
