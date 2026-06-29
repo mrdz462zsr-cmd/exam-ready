@@ -1,16 +1,11 @@
 import { useState, useMemo } from 'react';
+import { CARD_CLASSES, PRIORITY_STYLES } from '../utils/constants';
 
 const STATUS_OPTIONS = [
   { value: 'not_started', label: 'לא התחלתי' },
   { value: 'in_progress', label: 'בתהליך' },
   { value: 'completed', label: 'הושלם' },
 ];
-
-const PRIORITY_LABELS = {
-  high: { label: 'גבוהה', className: 'bg-red/10 text-red border border-red/15' },
-  medium: { label: 'בינונית', className: 'bg-orange/10 text-orange border border-orange/15' },
-  low: { label: 'נמוכה', className: 'bg-grey-bg text-text-muted border border-grey-border/60' },
-};
 
 const STATUS_STYLES = {
   not_started: 'bg-grey-bg text-text-muted border-grey-border',
@@ -72,7 +67,7 @@ export default function TopicTable({ topics, pastExamsCount, onTopicStatusChange
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] border border-grey-border/60 p-5">
+    <div className={`${CARD_CLASSES} p-5`}>
       <div className="flex items-center justify-between mb-5">
         <h3 className="text-[15px] font-bold text-text-primary">טבלת נושאים</h3>
         <span className="text-[11px] text-text-muted bg-grey-bg px-2.5 py-1 rounded-md font-medium">
@@ -102,7 +97,7 @@ export default function TopicTable({ topics, pastExamsCount, onTopicStatusChange
           </thead>
           <tbody>
             {sorted.map((topic, idx) => {
-              const priority = PRIORITY_LABELS[topic.syllabusWeight] || PRIORITY_LABELS.low;
+              const priority = PRIORITY_STYLES[topic.syllabusWeight] || PRIORITY_STYLES.low;
               return (
                 <tr
                   key={topic.id}

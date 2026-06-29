@@ -3,22 +3,10 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, Label,
 } from 'recharts';
+import { getDaysLeft, getDaysColor } from '../utils/dateUtils';
+import { CARD_CLASSES, PRIORITY_STYLES } from '../utils/constants';
 
 const isDemo = import.meta.env.VITE_DEMO_MODE === 'true';
-
-const PRIORITY_STYLES = {
-  high: { label: 'עדיפות גבוהה', className: 'bg-red/10 text-red border border-red/15' },
-  medium: { label: 'עדיפות בינונית', className: 'bg-orange/10 text-orange border border-orange/15' },
-  low: { label: 'עדיפות נמוכה', className: 'bg-grey-bg text-text-muted border border-grey-border/60' },
-};
-
-function getDaysLeft(examDate) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const exam = new Date(examDate);
-  exam.setHours(0, 0, 0, 0);
-  return Math.max(0, Math.floor((exam - today) / 86400000));
-}
 
 function getNextTopic(topics) {
   return topics.find(t => t.status === 'in_progress') ||
@@ -42,17 +30,6 @@ function getPlannedHoursThisWeek(courses) {
   }, 0);
 }
 
-function getTotalStudyDays(courses) {
-  const maxExam = courses.reduce((max, c) => {
-    const d = new Date(c.examDate);
-    return d > max ? d : max;
-  }, new Date());
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  maxExam.setHours(0, 0, 0, 0);
-  return Math.max(0, Math.floor((maxExam - today) / 86400000));
-}
-
 function getExamsThisMonth(courses) {
   const now = new Date();
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -65,7 +42,7 @@ function getExamsThisMonth(courses) {
 
 function KPISummaryCard({ icon, title, children }) {
   return (
-    <div className="bg-white rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] border border-grey-border/60 p-4 flex flex-col gap-1 min-w-[140px]">
+    <div className={`${CARD_CLASSES} p-4 flex flex-col gap-1 min-w-[140px]`}>
       <p className="text-[11px] uppercase tracking-wider text-text-muted font-semibold">{icon} {title}</p>
       {children}
     </div>
@@ -100,7 +77,7 @@ function OverallProgressChart({ courses }) {
   }, [courses]);
 
   return (
-    <div className="bg-white rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] border border-grey-border/60 p-5 flex flex-col" style={{ minHeight: 400 }}>
+    <div className={`${CARD_CLASSES} p-5 flex flex-col`} style={{ minHeight: 400 }}>
       <div className="flex items-center justify-between mb-5">
         <h3 className="text-[15px] font-bold text-text-primary">התקדמות כוללת מול תוכנית</h3>
         <div className="flex items-center gap-4">
@@ -179,7 +156,7 @@ function CoursesGantt({ courses, onSelectCourse }) {
   }, [courses]);
 
   return (
-    <div className="bg-white rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] border border-grey-border/60 p-5">
+    <div className={`${CARD_CLASSES} p-5`}>
       <div className="flex items-center justify-between mb-5">
         <h3 className="text-[15px] font-bold text-text-primary">גנט קורסים — מפת לימוד</h3>
         <span className="text-[11px] text-text-muted bg-grey-bg px-2.5 py-1 rounded-md font-medium">{courses.length} קורסים</span>
@@ -229,7 +206,7 @@ export default function CoursesOverview({ courses, onSelectCourse, onAddCourse, 
   }, [courses]);
 
   const closestDays = closestExam ? getDaysLeft(closestExam.examDate) : 0;
-  const closestDaysColor = closestDays <= 14 ? 'text-red' : closestDays <= 21 ? 'text-orange' : 'text-green';
+  const closestDaysColor = getDaysColor(closestDays);
   const examsThisMonth = useMemo(() => getExamsThisMonth(courses), [courses]);
   const examsRemaining = useMemo(() => {
     return courses.filter(c => getCompletionPct(c.topics) < 100).length;
@@ -337,7 +314,7 @@ export default function CoursesOverview({ courses, onSelectCourse, onAddCourse, 
             { x: 337, label: '20.7' }, { x: 109, label: '27.7' }, { x: 20, label: '30.7' },
           ];
           return (
-            <div className="bg-white rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] border border-grey-border/60 w-full p-6">
+            <div className={`${CARD_CLASSES} w-full p-6`}>
               <h3 className="text-[15px] font-bold text-text-primary mb-2">ציר זמן — מבחנים קרובים</h3>
               <div style={{ width: '100%', overflowX: 'hidden' }}>
                 <svg width="100%" height="140" viewBox="0 0 1000 140" preserveAspectRatio="xMidYMid meet">
@@ -371,7 +348,7 @@ export default function CoursesOverview({ courses, onSelectCourse, onAddCourse, 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {courses.map((course) => {
             const daysLeft = getDaysLeft(course.examDate);
-            const daysColor = daysLeft <= 14 ? 'text-red' : daysLeft <= 21 ? 'text-orange' : 'text-green';
+            const daysColor = getDaysColor(daysLeft);
             const daysBg = daysLeft <= 14 ? 'bg-red/8' : daysLeft <= 21 ? 'bg-orange/8' : 'bg-green/8';
             const completionPct = getCompletionPct(course.topics);
             const nextTopic = getNextTopic(course.topics);
@@ -393,7 +370,7 @@ export default function CoursesOverview({ courses, onSelectCourse, onAddCourse, 
                       <h3 className="text-[15px] font-bold text-white leading-snug">{course.courseName}</h3>
                     </div>
                     <span className={`shrink-0 px-2 py-0.5 rounded-full text-[9px] font-bold bg-white/20 text-white border border-white/30`}>
-                      {priority.label}
+                      {priority.fullLabel}
                     </span>
                   </div>
                   <div className="flex items-center gap-3 mt-2">

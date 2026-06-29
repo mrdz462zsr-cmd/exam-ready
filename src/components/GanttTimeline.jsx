@@ -1,4 +1,6 @@
 import { useState, useMemo } from 'react';
+import { normalizeDate } from '../utils/dateUtils';
+import { CARD_CLASSES } from '../utils/constants';
 
 const STATUS_COLORS = {
   completed: { bar: 'bg-green', ring: 'ring-green/20' },
@@ -13,10 +15,8 @@ export default function GanttTimeline({ schedule, examDate, onTopicStatusChange 
   const [expandedTopic, setExpandedTopic] = useState(null);
 
   const { totalWeeks, currentWeek, weekLabels } = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const exam = new Date(examDate);
-    exam.setHours(0, 0, 0, 0);
+    const today = normalizeDate(new Date());
+    const exam = normalizeDate(examDate);
     const totalDays = Math.max(1, Math.floor((exam - today) / 86400000));
     const tw = Math.max(1, Math.ceil(totalDays / 7));
 
@@ -43,7 +43,7 @@ export default function GanttTimeline({ schedule, examDate, onTopicStatusChange 
   const topics = schedule.topics;
 
   return (
-    <div className="bg-white rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] border border-grey-border/60 p-5">
+    <div className={`${CARD_CLASSES} p-5`}>
       <div className="flex items-center justify-between mb-5">
         <h3 className="text-[15px] font-bold text-text-primary">ציר זמן — גנט</h3>
         <span className="text-[11px] text-text-muted bg-grey-bg px-2.5 py-1 rounded-md font-medium">

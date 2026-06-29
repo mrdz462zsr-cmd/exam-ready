@@ -1,9 +1,11 @@
 import { useMemo } from 'react';
 import { RadialBarChart, RadialBar, ResponsiveContainer, PolarAngleAxis } from 'recharts';
+import { getDaysLeft, getDaysColor } from '../utils/dateUtils';
+import { CARD_CLASSES } from '../utils/constants';
 
 function KPICard({ title, children }) {
   return (
-    <div className="bg-white rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] border border-grey-border/60 p-5 border-r-[3px] border-r-navy-mid min-w-[170px]">
+    <div className={`${CARD_CLASSES} p-5 border-r-[3px] border-r-navy-mid min-w-[170px]`}>
       <p className="text-[11px] uppercase tracking-wider text-text-muted mb-2 font-semibold">{title}</p>
       {children}
     </div>
@@ -11,15 +13,8 @@ function KPICard({ title, children }) {
 }
 
 export default function KPIBar({ topics, examDate, overallStatus }) {
-  const daysLeft = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const exam = new Date(examDate);
-    exam.setHours(0, 0, 0, 0);
-    return Math.max(0, Math.floor((exam - today) / 86400000));
-  }, [examDate]);
-
-  const daysColor = daysLeft <= 14 ? 'text-red' : daysLeft <= 21 ? 'text-orange' : 'text-green';
+  const daysLeft = useMemo(() => getDaysLeft(examDate), [examDate]);
+  const daysColor = getDaysColor(daysLeft);
 
   const completed = topics.filter(t => t.status === 'completed').length;
   const total = topics.length;

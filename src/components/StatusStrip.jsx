@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { getDaysLeft } from '../utils/dateUtils';
 
 export default function StatusStrip({ overallStatus, topics, examDate }) {
   const message = useMemo(() => {
@@ -22,7 +23,7 @@ export default function StatusStrip({ overallStatus, topics, examDate }) {
         .reduce((sum, t) => sum + t.estimatedHours, 0);
       const totalHours = topics.reduce((sum, t) => sum + t.estimatedHours, 0);
       const remainingHours = totalHours - completedHours;
-      const daysLeft = Math.max(1, Math.floor((new Date(examDate) - new Date()) / 86400000));
+      const daysLeft = Math.max(1, getDaysLeft(examDate));
       const weeksLeft = Math.max(1, Math.ceil(daysLeft / 7));
       const neededExtra = Math.ceil(remainingHours / weeksLeft) - 10;
       const extra = Math.max(1, neededExtra);

@@ -1,14 +1,9 @@
 import { useMemo } from 'react';
 import StatusStrip from './StatusStrip';
+import { getDaysLeft } from '../utils/dateUtils';
 
 export default function Header({ courseName, examDate, overallStatus, topics, onReset }) {
-  const daysLeft = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const exam = new Date(examDate);
-    exam.setHours(0, 0, 0, 0);
-    return Math.max(0, Math.floor((exam - today) / 86400000));
-  }, [examDate]);
+  const daysLeft = useMemo(() => getDaysLeft(examDate), [examDate]);
 
   const examFormatted = new Date(examDate).toLocaleDateString('he-IL', {
     day: 'numeric',

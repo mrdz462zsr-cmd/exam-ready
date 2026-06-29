@@ -1,4 +1,6 @@
 import { useMemo } from 'react';
+import { normalizeDate } from '../utils/dateUtils';
+import { CARD_CLASSES } from '../utils/constants';
 import {
   LineChart,
   Line,
@@ -29,10 +31,8 @@ function CustomTooltip({ active, payload, label }) {
 
 export default function ProgressChart({ topics, examDate, schedule }) {
   const chartData = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const exam = new Date(examDate);
-    exam.setHours(0, 0, 0, 0);
+    const today = normalizeDate(new Date());
+    const exam = normalizeDate(examDate);
     const totalDays = Math.max(1, Math.floor((exam - today) / 86400000));
     const totalWeeks = Math.max(1, Math.ceil(totalDays / 7));
 
@@ -79,7 +79,7 @@ export default function ProgressChart({ topics, examDate, schedule }) {
   }, [chartData]);
 
   return (
-    <div className="bg-white rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] border border-grey-border/60 p-5">
+    <div className={`${CARD_CLASSES} p-5`}>
       <div className="flex items-center justify-between mb-5">
         <h3 className="text-[15px] font-bold text-text-primary">התקדמות מול תוכנית</h3>
         <div className="flex items-center gap-4">
